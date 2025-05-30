@@ -1,7 +1,7 @@
-import IntroAnimation from './components/IntroAnimation'; // Ensure this import is here
-import React, { useState, useEffect } from 'react'; // React, useState, useEffect are needed
-import { TrendingUp, Gift, BookOpen, Zap, Twitter, Linkedin, Send } from 'lucide-react';
-import Quiz from './components/Quiz'; // Your import for the Quiz component
+import IntroAnimation from './components/IntroAnimation'; 
+import React, { useState, useEffect } from 'react'; 
+import { TrendingUp, Gift, BookOpen, Zap, Twitter as TwitterIcon, Linkedin as LinkedinIcon, Send, Instagram as InstagramIcon, X as XIcon } from 'lucide-react'; // Added XIcon, InstagramIcon, kept TwitterIcon as alias for clarity if needed
+import Quiz from './components/Quiz'; 
 
 // Updated EVENT_DETAILS with Tribe Academy info and specific colors
 const EVENT_DETAILS = {
@@ -15,9 +15,9 @@ const EVENT_DETAILS = {
   courseCTA: "Learn More & Enroll",
   footerText: "© 2025 Tribe Academy. All Rights Reserved.",
   socialLinks: {
-    twitter: "https://twitter.com/your_tribe_academy_profile",
-    linkedin: "https://linkedin.com/company/your_tribe_academy_profile",
-    telegram: "https://t.me/your_tribe_academy_channel",
+    x: "https://x.com/tribeacademy_in", // UPDATED
+    linkedin: "https://www.linkedin.com/company/tribeacademyin/", // UPDATED
+    instagram: "https://www.instagram.com/tribeacademy.in?igsh=NGIwZ2tzd2NxOG0z" // UPDATED
   },
   logoImageFile: "image_ee4ad0.png"
 };
@@ -30,9 +30,11 @@ const SectionTitle = ({ children, color = "text-tribe-red-pink" }) => (
 );
 
 // Navigation Component
-// Pass setShowQuiz to Navbar if you want the button there
 const Navbar = ({ setActiveSection, onStartQuiz }) => { 
   const navItems = ["Home", "T-Shirts", "Course", "Contact"];
+  // A state for mobile menu visibility can be added here if needed
+  // const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
   return (
     <nav className="bg-brand-black bg-opacity-90 backdrop-blur-md sticky top-0 z-50 shadow-lg border-b border-gray-800">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -46,12 +48,20 @@ const Navbar = ({ setActiveSection, onStartQuiz }) => {
             />
             <span className="font-bold text-2xl text-white">{EVENT_DETAILS.boothName}</span>
           </div>
-          <div className="hidden md:flex items-center"> {/* Changed md:block to md:flex */}
+          {/* Desktop Menu & Quiz Button */}
+          <div className="hidden md:flex items-center">
             <div className="ml-10 flex items-baseline space-x-4">
               {navItems.map((item) => (
                 <button
                   key={item}
                   onClick={() => {
+                    // Ensure currentQuiz is not active before scrolling
+                    // This logic might need to be handled in App.js if quiz hides sections
+                    const quizElement = document.querySelector('.quiz-container'); // Example selector
+                    if (quizElement && getComputedStyle(quizElement).display !== 'none') {
+                        // Quiz is active, maybe close it or just don't scroll
+                        return; 
+                    }
                     const element = document.getElementById(item.toLowerCase());
                     if (element) {
                       element.scrollIntoView({ behavior: 'smooth' });
@@ -62,26 +72,56 @@ const Navbar = ({ setActiveSection, onStartQuiz }) => {
                   {item}
                 </button>
               ))}
-               {/* Example of adding Quiz button to Navbar */}
-               {/* <button 
-                  onClick={onStartQuiz}
-                  className="ml-4 bg-tribe-pink hover:bg-opacity-80 text-white font-semibold py-2 px-4 rounded-lg text-sm transition-transform duration-300 transform hover:scale-105"
-               >
-                  Quiz
-               </button> */}
             </div>
+            <button 
+                onClick={onStartQuiz}
+                className="ml-6 bg-tribe-pink hover:bg-opacity-80 text-white font-semibold py-2 px-4 rounded-lg text-sm transition-transform duration-300 transform hover:scale-105"
+            >
+                Web3 Quiz
+            </button>
           </div>
-          <div className="md:hidden"> {/* For mobile menu - can be implemented later */}
-            <button onClick={onStartQuiz} className="text-tribe-pink p-2">Quiz</button> {/* Simple mobile quiz button */}
+          {/* Mobile Menu Button (Hamburger Icon) & Quiz button for mobile */}
+          <div className="md:hidden flex items-center">
+             <button 
+                onClick={onStartQuiz}
+                className="text-tribe-pink p-2 mr-2 font-semibold text-sm"
+             >
+                Quiz
+             </button>
+            {/* Add a hamburger icon button here to toggle mobile menu */}
+            {/* <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="text-gray-300 hover:text-white p-2">
+              {isMobileMenuOpen ? <XIcon size={24} /> : <MenuIcon size={24} />} // Example with MenuIcon
+            </button> */}
           </div>
         </div>
       </div>
+      {/* Mobile Menu Dropdown (conditionally rendered) */}
+      {/* {isMobileMenuOpen && (
+        <div className="md:hidden bg-brand-black bg-opacity-95 pb-3">
+          {navItems.map((item) => (
+            <button
+              key={item}
+              onClick={() => {
+                const element = document.getElementById(item.toLowerCase());
+                if (element) {
+                  element.scrollIntoView({ behavior: 'smooth' });
+                }
+                setIsMobileMenuOpen(false); // Close menu on click
+              }}
+              className="block text-gray-300 hover:bg-gray-800 hover:text-tribe-mustard px-3 py-2 rounded-md text-base font-medium w-full text-left"
+            >
+              {item}
+            </button>
+          ))}
+        </div>
+      )} */}
     </nav>
   );
 };
 
 // Hero Section Component
 const HeroSection = () => {
+  // (HeroSection code remains the same)
   return (
     <section id="home" className="bg-brand-black text-white py-20 sm:py-32 min-h-screen flex items-center">
       <div className="container mx-auto px-6 text-center">
@@ -121,6 +161,7 @@ const HeroSection = () => {
 
 // T-Shirt Section Component
 const TshirtSection = () => {
+  // (TshirtSection code remains the same)
   return (
     <section id="tshirts" className="py-16 sm:py-24 bg-brand-black">
       <div className="container mx-auto px-6">
@@ -156,6 +197,7 @@ const TshirtSection = () => {
 
 // Course Section Component
 const CourseSection = () => {
+  // (CourseSection code remains the same)
   return (
     <section id="course" className="py-16 sm:py-24 bg-brand-black">
       <div className="container mx-auto px-6">
@@ -192,7 +234,7 @@ const CourseSection = () => {
   );
 };
 
-// Contact/Footer Section
+// Contact/Footer Section - ENSURE THIS IS THE VERSION WITH CORRECTED LINKS
 const Footer = () => {
   return (
     <footer id="contact" className="bg-brand-black text-gray-400 py-12 sm:py-16 border-t border-gray-800">
@@ -205,15 +247,24 @@ const Footer = () => {
         />
         <p className="text-lg mb-4 text-gray-300">Connect with <span className="text-tribe-red-pink font-semibold">{EVENT_DETAILS.boothName}</span> & stay updated!</p>
         <div className="flex justify-center space-x-6 mb-8">
-          <a href={EVENT_DETAILS.socialLinks.twitter} target="_blank" rel="noopener noreferrer" className="hover:text-tribe-red-pink transition-colors">
-            <Twitter size={28} />
-          </a>
-          <a href={EVENT_DETAILS.socialLinks.linkedin} target="_blank" rel="noopener noreferrer" className="hover:text-tribe-red-pink transition-colors">
-            <Linkedin size={28} />
-          </a>
-          <a href={EVENT_DETAILS.socialLinks.telegram} target="_blank" rel="noopener noreferrer" className="hover:text-tribe-red-pink transition-colors">
-            <Send size={28} />
-          </a>
+          {/* X (formerly Twitter) Link */}
+          {EVENT_DETAILS.socialLinks.x && (
+            <a href={EVENT_DETAILS.socialLinks.x} target="_blank" rel="noopener noreferrer" aria-label="X profile" className="hover:text-tribe-red-pink transition-colors">
+              <XIcon size={28} /> 
+            </a>
+          )}
+          {/* LinkedIn Link */}
+          {EVENT_DETAILS.socialLinks.linkedin && (
+             <a href={EVENT_DETAILS.socialLinks.linkedin} target="_blank" rel="noopener noreferrer" aria-label="LinkedIn profile" className="hover:text-tribe-red-pink transition-colors">
+              <LinkedinIcon size={28} />
+            </a>
+          )}
+          {/* Instagram Link - NEW */}
+          {EVENT_DETAILS.socialLinks.instagram && (
+            <a href={EVENT_DETAILS.socialLinks.instagram} target="_blank" rel="noopener noreferrer" aria-label="Instagram profile" className="hover:text-tribe-red-pink transition-colors">
+              <InstagramIcon size={28} />
+            </a>
+          )}
         </div>
         <p className="text-sm">{EVENT_DETAILS.footerText}</p>
         <p className="text-xs mt-2">
@@ -228,49 +279,38 @@ const Footer = () => {
 export default function App() {
   const [activeSection, setActiveSection] = useState('home');
   const [showIntro, setShowIntro] = useState(true);
-  const [showQuiz, setShowQuiz] = useState(false); // You already had this, which is good!
+  const [showQuiz, setShowQuiz] = useState(false); 
 
   useEffect(() => {
-    if (!showIntro && !showQuiz) { // Only handle main page scroll if intro and quiz are not showing
+    if (!showIntro && !showQuiz) { 
         const sectionElement = document.getElementById(activeSection);
+        // Corrected the 'element' variable name here
         if (sectionElement && (activeSection !== 'home' || window.scrollY > 0)) {
-            // Your existing scroll logic for the main page
+             // Your existing scroll logic for the main page sections
         }
     }
-  }, [activeSection, showIntro, showQuiz]); // Add showQuiz to dependency array
+  }, [activeSection, showIntro, showQuiz]); 
 
   if (showIntro) {
     return <IntroAnimation onAnimationEnd={() => setShowIntro(false)} />;
   }
 
-  // <<< ADD THIS LOGIC TO SHOW THE QUIZ >>>
   if (showQuiz) {
     return (
-      // It's good to have a consistent background for the quiz page too
-      <div className="bg-brand-black min-h-screen font-inter text-gray-200 py-10 flex items-center justify-center">
+      <div className="bg-brand-black min-h-screen font-inter text-gray-200 py-10 flex flex-col items-center justify-start pt-20">
         <Quiz onQuizComplete={() => setShowQuiz(false)} />
       </div>
     );
   }
 
-  // If showIntro is false AND showQuiz is false, render the main website:
   return (
     <div className="bg-brand-black min-h-screen font-inter text-gray-200">
       <Navbar 
         setActiveSection={setActiveSection} 
-        onStartQuiz={() => setShowQuiz(true)} // Pass function to Navbar to start quiz
+        onStartQuiz={() => {
+          setShowQuiz(true);
+        }}
       />
-      {/* Button to start the quiz, placed below Navbar for now */}
-      <div className="text-center py-5 sticky top-20 z-40 bg-brand-black bg-opacity-50 backdrop-blur-sm"> 
-        {/* Added some styling to make it visible and not overlap weirdly */}
-         <button 
-            onClick={() => setShowQuiz(true)}
-            className="bg-tribe-red-pink hover:bg-opacity-80 text-white font-bold py-2 px-6 rounded-lg text-lg transition-transform duration-300 transform hover:scale-105 shadow-lg"
-         >
-            Take the Web3 Quiz!
-         </button>
-      </div>
-
       <HeroSection />
       <TshirtSection />
       <CourseSection />
