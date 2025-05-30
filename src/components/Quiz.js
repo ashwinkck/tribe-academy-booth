@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import { allQuestionsData } from '../questions'; // Adjust path if questions.js is elsewhere
 
 // Helper function to shuffle an array (Fisher-Yates shuffle)
@@ -16,28 +16,27 @@ const Quiz = ({ onQuizComplete }) => {
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [userAnswers, setUserAnswers] = useState({});
   const [score, setScore] = useState(0);
-  const [quizPhase, setQuizPhase] = useState('initial'); // 'initial', 'collectInfo', 'playing', 'results'
+  const [quizPhase, setQuizPhase] = useState('initial');
 
-  // State for user info
+  // State for user info - extended
   const [userName, setUserName] = useState('');
   const [userPhone, setUserPhone] = useState('');
+  const [userMail, setUserMail] = useState(''); 
+  const [userDistrict, setUserDistrict] = useState(''); 
   const [userOrganization, setUserOrganization] = useState('');
   const [formError, setFormError] = useState('');
 
 
   const proceedToQuizQuestions = useCallback(() => {
-    // This shuffles the entire list of questions from questions.js
     const shuffledAll = shuffleArray(allQuestionsData);
-    // Then, it takes the first 10 questions from that fully shuffled list.
-    // This ensures a random selection of 10 questions from your entire bank.
     const selectedTen = shuffledAll.slice(0, 10);
 
     const preparedQuestions = shuffleArray(
       selectedTen.map(q => ({
         ...q,
-        options: shuffleArray([...q.options]) // Shuffles options for each question
+        options: shuffleArray([...q.options])
       }))
-    ); // Shuffles the order of the 10 selected questions
+    );
 
     setCurrentQuizQuestions(preparedQuestions);
     setCurrentQuestionIndex(0);
@@ -46,25 +45,36 @@ const Quiz = ({ onQuizComplete }) => {
     setQuizPhase('playing');
   }, []);
 
-  const handleInfoSubmit = (e) => {
+  const handleInfoSubmit = (e) => { 
     e.preventDefault();
-    if (!userName.trim() || !userPhone.trim()) {
-      setFormError('Name and Phone Number are required.');
+    // Updated validation to include district and organization as mandatory
+    if (!userName.trim() || !userPhone.trim() || !userMail.trim() || !userDistrict.trim() || !userOrganization.trim()) {
+      setFormError('All fields (Name, Phone, Email, District, Organization) are required.');
       return;
     }
     if (!/^\d{10}$/.test(userPhone.trim())) {
         setFormError('Please enter a valid 10-digit phone number.');
         return;
     }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(userMail.trim())) {
+        setFormError('Please enter a valid email address.');
+        return;
+    }
     setFormError('');
 
-    console.log("User Info Collected:", {
+    const participantData = {
       name: userName,
       phone: userPhone,
+      email: userMail,
+      district: userDistrict,
       organization: userOrganization,
-    });
+      submittedAt: new Date().toISOString() // Simple timestamp
+    };
 
-    proceedToQuizQuestions(); // Start the quiz questions
+    // Log the collected data to the console
+    console.log("User Info Collected (Not Saved to DB):", participantData);
+      
+    proceedToQuizQuestions(); // Now start the quiz questions
   };
 
 
@@ -94,6 +104,8 @@ const Quiz = ({ onQuizComplete }) => {
   const resetAndStartOver = () => {
     setUserName('');
     setUserPhone('');
+    setUserMail(''); 
+    setUserDistrict(''); 
     setUserOrganization('');
     setFormError('');
     setQuizPhase('initial'); 
@@ -122,32 +134,35 @@ const Quiz = ({ onQuizComplete }) => {
           <div>
             <label htmlFor="userName" className="block text-sm font-medium text-gray-300 mb-1">Name <span className="text-red-500">*</span></label>
             <input
-              type="text"
-              id="userName"
-              value={userName}
-              onChange={(e) => setUserName(e.target.value)}
-              required
+              type="text" id="userName" value={userName} onChange={(e) => setUserName(e.target.value)} required
               className="w-full p-3 bg-gray-800 text-white border border-gray-600 rounded-md focus:ring-tribe-pink focus:border-tribe-pink"
             />
           </div>
           <div>
             <label htmlFor="userPhone" className="block text-sm font-medium text-gray-300 mb-1">Phone Number <span className="text-red-500">*</span></label>
             <input
-              type="tel"
-              id="userPhone"
-              value={userPhone}
-              onChange={(e) => setUserPhone(e.target.value)}
-              required
+              type="tel" id="userPhone" value={userPhone} onChange={(e) => setUserPhone(e.target.value)} required
+              className="w-full p-3 bg-gray-800 text-white border border-gray-600 rounded-md focus:ring-tribe-pink focus:border-tribe-pink"
+            />
+          </div>
+          <div> 
+            <label htmlFor="userMail" className="block text-sm font-medium text-gray-300 mb-1">Email <span className="text-red-500">*</span></label>
+            <input
+              type="email" id="userMail" value={userMail} onChange={(e) => setUserMail(e.target.value)} required
+              className="w-full p-3 bg-gray-800 text-white border border-gray-600 rounded-md focus:ring-tribe-pink focus:border-tribe-pink"
+            />
+          </div>
+          <div> 
+            <label htmlFor="userDistrict" className="block text-sm font-medium text-gray-300 mb-1">District <span className="text-red-500">*</span></label>
+            <input
+              type="text" id="userDistrict" value={userDistrict} onChange={(e) => setUserDistrict(e.target.value)} required 
               className="w-full p-3 bg-gray-800 text-white border border-gray-600 rounded-md focus:ring-tribe-pink focus:border-tribe-pink"
             />
           </div>
           <div>
-            <label htmlFor="userOrganization" className="block text-sm font-medium text-gray-300 mb-1">Organization (Optional)</label>
+            <label htmlFor="userOrganization" className="block text-sm font-medium text-gray-300 mb-1">Organization <span className="text-red-500">*</span></label>
             <input
-              type="text"
-              id="userOrganization"
-              value={userOrganization}
-              onChange={(e) => setUserOrganization(e.target.value)}
+              type="text" id="userOrganization" value={userOrganization} onChange={(e) => setUserOrganization(e.target.value)} required
               className="w-full p-3 bg-gray-800 text-white border border-gray-600 rounded-md focus:ring-tribe-pink focus:border-tribe-pink"
             />
           </div>
@@ -163,7 +178,6 @@ const Quiz = ({ onQuizComplete }) => {
     );
   }
 
-
   if (quizPhase === 'results') {
     return (
       <div className="text-center p-8 bg-gray-900 rounded-lg max-w-md mx-auto mt-10 border border-gray-700 shadow-2xl">
@@ -171,7 +185,7 @@ const Quiz = ({ onQuizComplete }) => {
         <p className="text-gray-300 mb-2">Thank you, {userName || 'Participant'}!</p>
         <p className="text-4xl text-tribe-mustard mb-8">Your Score: {score} / {currentQuizQuestions.length}</p>
         <button
-          onClick={resetAndStartOver}
+          onClick={resetAndStartOver} 
           className="bg-tribe-mustard hover:bg-opacity-80 text-brand-black font-bold py-3 px-10 rounded-lg text-xl mr-4 transition-transform duration-300 transform hover:scale-105"
         >
           Play Again
@@ -226,7 +240,6 @@ const Quiz = ({ onQuizComplete }) => {
     );
   }
 
-  // Fallback for unknown phase
   return <p className="text-white text-center p-10">Something went wrong with the quiz phase.</p>;
 };
 
