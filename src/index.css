@@ -1,0 +1,37 @@
+/* src/index.css */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Add these global styles below */
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: 'Inter', sans-serif; /* Inter font should be loaded via index.html */
+  background-color: #000000; /* Or use a Tailwind class on your main App div if preferred */
+  /* Tailwind's preflight often handles base body styling, so you might only need specific overrides here */
+}
+
+/* Custom animations (if you are using these custom .animate-pulse and .animate-bounce classes) */
+/* Note: Tailwind provides its own animate-pulse and animate-bounce utilities.
+   These definitions would override or supplement them if you use these specific class names. */
+@keyframes pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.7; transform: scale(1.1); }
+}
+
+.animate-pulse { /* Use this if you specifically need this custom version */
+  animation: pulse 2s infinite;
+}
+
+@keyframes bounce {
+  0%, 20%, 50%, 80%, 100% {transform: translateY(0);}
+  40% {transform: translateY(-15px);}
+  60% {transform: translateY(-7px);}
+}
+
+.animate-bounce { /* Use this if you specifically need this custom version */
+  animation: bounce 2s infinite;
+}
