@@ -1,15 +1,17 @@
 import IntroAnimation from './components/IntroAnimation'; 
 import React, { useState, useEffect } from 'react'; 
-import { TrendingUp, Gift, BookOpen, Zap, Twitter as TwitterIcon, Linkedin as LinkedinIcon, Send, Instagram as InstagramIcon, X as XIcon } from 'lucide-react';
+import { TrendingUp, Gift, BookOpen, Zap, Twitter as TwitterIcon, Linkedin as LinkedinIcon, Send, Instagram as InstagramIcon, X as XIcon, RefreshCw } from 'lucide-react';
 import Quiz from './components/Quiz'; 
 
-// EVENT_DETAILS object remains the same
+// EVENT_DETAILS object
 const EVENT_DETAILS = {
   eventName: "Crypto Conclave 2025 – Edition 01",
   boothName: "Tribe Academy",
   tagline: "Dive into the Decentralized Future with Tribe Academy!",
   tshirtHeadline: "FREE Exclusive Tribe Academy Web3 T-Shirt!",
   tshirtSubtext: "Visit the Tribe Academy booth, connect with us, and grab your limited edition tee!",
+  tshirtImageFront: "/images/front.jpg", 
+  tshirtImageBack: "/images/back.jpg",   
   courseHeadline: "Unlock Web3 Mastery: Tribe Academy's Premier Course",
   courseDescription: "From blockchain basics to advanced dApp development, Tribe Academy's course is your gateway to becoming a Web3 pro. Special event discount available!",
   courseCTA: "Learn More & Enroll",
@@ -19,7 +21,7 @@ const EVENT_DETAILS = {
     linkedin: "https://www.linkedin.com/company/tribeacademyin/", 
     instagram: "https://www.instagram.com/tribeacademy.in?igsh=NGIwZ2tzd2NxOG0z" 
   },
-  logoImageFile: "image_ee4ad0.png"
+  logoImageFile: "image_ee4ad0.png" 
 };
 
 // SectionTitle component remains the same
@@ -29,11 +31,9 @@ const SectionTitle = ({ children, color = "text-tribe-red-pink" }) => (
   </h2>
 );
 
-// Navigation Component - MODIFIED: Removed onStartQuiz prop and internal quiz buttons
+// Navigation Component remains the same
 const Navbar = ({ setActiveSection }) => { 
   const navItems = ["Home", "T-Shirts", "Course", "Contact"];
-  // const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false); // For future mobile menu
-
   return (
     <nav className="bg-brand-black bg-opacity-90 backdrop-blur-md sticky top-0 z-50 shadow-lg border-b border-gray-800">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -47,7 +47,6 @@ const Navbar = ({ setActiveSection }) => {
             />
             <span className="font-bold text-2xl text-white">{EVENT_DETAILS.boothName}</span>
           </div>
-          {/* Desktop Menu */}
           <div className="hidden md:flex items-center">
             <div className="ml-10 flex items-baseline space-x-4">
               {navItems.map((item) => (
@@ -65,33 +64,17 @@ const Navbar = ({ setActiveSection }) => {
                 </button>
               ))}
             </div>
-            {/* Quiz button removed from here */}
           </div>
-          {/* Mobile Menu Button Placeholder */}
           <div className="md:hidden flex items-center">
-            {/* Quiz button removed from here */}
-            {/* Add a hamburger icon button here to toggle mobile menu if needed */}
-            {/* <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="text-gray-300 hover:text-white p-2">
-              <MenuIcon size={24} />
-            </button> */}
-             <span className="text-gray-400 text-sm">Menu</span> {/* Placeholder */}
+             <span className="text-gray-400 text-sm">Menu</span> {/* Placeholder for mobile menu icon */}
           </div>
         </div>
       </div>
-      {/* Mobile Menu Dropdown (conditionally rendered) - Example structure
-      {isMobileMenuOpen && (
-        <div className="md:hidden bg-brand-black bg-opacity-95 pb-3">
-          {navItems.map((item) => (
-            // ... mobile nav items ...
-          ))}
-        </div>
-      )} */}
     </nav>
   );
 };
 
-// HeroSection, TshirtSection, CourseSection, Footer components remain the same
-// ... (Assuming these components are unchanged from the previous version in the artifact) ...
+// HeroSection remains the same
 const HeroSection = () => {
   return (
     <section id="home" className="bg-brand-black text-white py-20 sm:py-32 min-h-screen flex items-center">
@@ -130,7 +113,18 @@ const HeroSection = () => {
   );
 };
 
+// T-Shirt Section Component - MODIFIED
 const TshirtSection = () => {
+  // === MODIFIED: Start by showing the back image ===
+  const [showFrontImage, setShowFrontImage] = useState(false); 
+
+  const handleToggleImage = () => {
+    setShowFrontImage(!showFrontImage);
+  };
+
+  const frontImage = EVENT_DETAILS.tshirtImageFront || "https://placehold.co/600x400/000000/FFFFFF?text=T-Shirt+Front&font=inter";
+  const backImage = EVENT_DETAILS.tshirtImageBack || "https://placehold.co/600x400/000000/CCCCCC?text=T-Shirt+Back&font=inter";
+
   return (
     <section id="tshirts" className="py-16 sm:py-24 bg-brand-black">
       <div className="container mx-auto px-6">
@@ -139,12 +133,32 @@ const TshirtSection = () => {
           {EVENT_DETAILS.tshirtHeadline}
         </SectionTitle>
         <div className="max-w-3xl mx-auto text-center bg-brand-black p-8 sm:p-10 rounded-xl shadow-2xl border border-gray-800">
-          <img
-            src="https://img.freepik.com/premium-psd/studio-shot-black-tshirt-white-background_1153121-10726.jpg"
-            alt="Tribe Academy T-Shirt Design"
-            className="w-full max-w-md mx-auto rounded-lg mb-8 shadow-lg"
-            onError={(e) => e.target.src = 'https://placehold.co/600x400/000000/FFFFFF?text=T-Shirt+Image+Error&font=inter'}
-          />
+          <div className="relative mb-4 group">
+            <img
+              src={showFrontImage ? frontImage : backImage} // Logic remains the same, initial state changed
+              alt={`Tribe Academy T-Shirt - ${showFrontImage ? 'Front View' : 'Back View'}`}
+              className="w-full max-w-md mx-auto rounded-lg shadow-lg transition-opacity duration-300 ease-in-out"
+              key={showFrontImage ? 'front' : 'back'} 
+              onError={(e) => {
+                  e.target.onerror = null; 
+                  e.target.src = `https://placehold.co/600x400/000000/FFFFFF?text=T-Shirt+Image+Error&font=inter`;
+              }}
+            />
+            <button
+              onClick={handleToggleImage}
+              className="absolute top-2 right-2 sm:top-4 sm:right-4 bg-black bg-opacity-50 text-white p-2 rounded-full hover:bg-opacity-75 transition-opacity duration-300 opacity-0 group-hover:opacity-100 focus:opacity-100"
+              aria-label="Toggle T-shirt view"
+            >
+              <RefreshCw size={20} />
+            </button>
+          </div>
+          <button
+            onClick={handleToggleImage}
+            className="mb-6 bg-gray-700 hover:bg-gray-600 text-white font-semibold py-2 px-4 rounded-lg text-sm transition-colors duration-300 inline-flex items-center"
+          >
+            <RefreshCw size={18} className="mr-2"/>
+            View {showFrontImage ? 'Back' : 'Front'} {/* This text will now correctly say "View Front" initially */}
+          </button>
           <p className="text-lg sm:text-xl text-gray-300 mb-6">
             {EVENT_DETAILS.tshirtSubtext}
           </p>
@@ -164,6 +178,7 @@ const TshirtSection = () => {
   );
 };
 
+// CourseSection remains the same
 const CourseSection = () => {
   return (
     <section id="course" className="py-16 sm:py-24 bg-brand-black">
@@ -201,6 +216,7 @@ const CourseSection = () => {
   );
 };
 
+// Footer component remains the same
 const Footer = () => {
   return (
     <footer id="contact" className="bg-brand-black text-gray-400 py-12 sm:py-16 border-t border-gray-800">
@@ -239,7 +255,7 @@ const Footer = () => {
 };
 
 
-// Main App Component - MODIFIED
+// Main App Component
 export default function App() {
   const [activeSection, setActiveSection] = useState('home');
   const [showIntro, setShowIntro] = useState(true);
@@ -270,10 +286,8 @@ export default function App() {
     <div className="bg-brand-black min-h-screen font-inter text-gray-200">
       <Navbar 
         setActiveSection={setActiveSection} 
-        // onStartQuiz prop removed from here
       />
-      {/* MODIFIED: Quiz button added back to the main page area */}
-      <div className="text-center py-5 bg-brand-black"> {/* Added bg-brand-black to blend with page */}
+      <div className="text-center py-5 bg-brand-black">
          <button 
             onClick={() => setShowQuiz(true)}
             className="bg-tribe-red-pink hover:bg-opacity-80 text-white font-bold py-3 px-8 rounded-lg text-xl transition-transform duration-300 transform hover:scale-105 shadow-lg"
