@@ -19,12 +19,10 @@ const Quiz = ({ onQuizComplete }) => {
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [userAnswers, setUserAnswers] = useState({});
   const [score, setScore] = useState(0);
-  const [quizPhase, setQuizPhase] = useState('initial'); // 'initial', 'loadingAuth', 'collectInfo', 'playing', 'results', 'alreadyParticipated', 'error'
+  const [quizPhase, setQuizPhase] = useState('initial');
   const [userId, setUserId] = useState(null);
-  const [hasSubmittedDetails, setHasSubmittedDetails] = useState(false);
-  const [quizCompletedInDb, setQuizCompletedInDb] = useState(false);
-
-  // State for user info - all mandatory
+  // Removed hasSubmittedDetails and quizCompletedInDb as primary controllers,
+  // will rely on Firestore doc existence and its quizCompleted field.
   const [userName, setUserName] = useState('');
   const [userPhone, setUserPhone] = useState('');
   const [userMail, setUserMail] = useState('');
@@ -33,8 +31,7 @@ const Quiz = ({ onQuizComplete }) => {
   const [formError, setFormError] = useState('');
   const [isSubmittingInfo, setIsSubmittingInfo] = useState(false);
 
-
-  // Check authentication state and submission status on component mount
+  // Effect to handle auth and initial quiz phase determination
   useEffect(() => {
     setQuizPhase('loadingAuth');
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
@@ -45,30 +42,25 @@ const Quiz = ({ onQuizComplete }) => {
           const participantDoc = await getDoc(participantRef);
           if (participantDoc.exists()) {
             const data = participantDoc.data();
-            setUserName(data.name || ''); 
-            setHasSubmittedDetails(data.hasSubmitted || false);
-            setQuizCompletedInDb(data.quizCompleted || false);
+            setUserName(data.name || ''); // Pre-fill name if exists
 
             if (data.quizCompleted) {
               setQuizPhase('alreadyParticipated');
-            } else if (data.hasSubmitted && data.quizState && data.quizState.currentQuizQuestions && data.quizState.currentQuizQuestions.length > 0) {
-              setCurrentQuizQuestions(data.quizState.currentQuizQuestions);
-              setCurrentQuestionIndex(data.quizState.currentQuestionIndex || 0);
-              setUserAnswers(data.quizState.userAnswers || {});
-              setScore(data.quizState.score || 0);
-              setQuizPhase('playing');
-            } else if (data.hasSubmitted) {
-                proceedToQuizQuestions(user.uid); 
+            } else if (data.hasSubmitted) { 
+              // User has submitted details but not completed. Start a fresh quiz.
+              proceedToQuizQuestions(user.uid);
             } else {
+              // User exists but hasn't submitted details (e.g. anonymous user, page refresh before info submit)
               setQuizPhase('collectInfo');
             }
           } else {
+            // New user or no existing participant document
             setQuizPhase('collectInfo');
           }
         } catch (error) {
-            console.error("Error fetching participant data:", error);
-            setFormError("Could not verify your participation status. Please try refreshing.");
-            setQuizPhase('error');
+          console.error("Error fetching participant data:", error);
+          setFormError("Could not verify your participation status. Please try refreshing.");
+          setQuizPhase('error');
         }
       } else {
         signInAnonymously(auth)
@@ -80,21 +72,21 @@ const Quiz = ({ onQuizComplete }) => {
       }
     });
     return () => unsubscribe();
-  }, []); 
+  }, []); // Runs once on mount
 
   const proceedToQuizQuestions = useCallback(async (currentUidPassed) => {
-    const currentUid = currentUidPassed || userId; // Use passed UID or state UID
+    const currentUid = currentUidPassed || userId;
     if (!currentUid) {
-        console.error("User ID is not available to save quiz state.");
-        setFormError("User session error. Cannot start quiz.");
-        setQuizPhase('error');
-        return;
+      console.error("User ID is not available for quiz.");
+      setFormError("User session error. Cannot start quiz.");
+      setQuizPhase('error');
+      return;
     }
     const shuffledAll = shuffleArray(allQuestionsData);
-    const selectedTen = shuffledAll.slice(0, 10);
+    const selectedQuestions = shuffledAll.slice(0, 20); // MODIFIED: Select 20 questions
 
     const preparedQuestions = shuffleArray(
-      selectedTen.map(q => ({
+      selectedQuestions.map(q => ({
         ...q,
         options: shuffleArray([...q.options])
       }))
@@ -108,39 +100,27 @@ const Quiz = ({ onQuizComplete }) => {
 
     const participantRef = doc(db, 'participants', currentUid);
     try {
-      await updateDoc(participantRef, {
+      // Update or set the document with current quiz state, marking quiz as not completed
+      await setDoc(participantRef, {
+        name: userName, // ensure these are available or use defaults
+        phone: userPhone,
+        email: userMail,
+        district: userDistrict,
+        organization: userOrganization,
+        hasSubmitted: true, // This should be true at this point
         quizState: {
           currentQuizQuestions: preparedQuestions,
           currentQuestionIndex: 0,
           userAnswers: {},
           score: 0
         },
-        quizCompleted: false 
-      });
+        quizCompleted: false, // Explicitly set to false when a new quiz starts
+        lastQuizStartedAt: new Date().toISOString()
+      }, { merge: true }); // Merge true to update existing doc or create if not exists
     } catch (error) {
-        console.error("Error saving initial quiz state (updateDoc failed, trying setDoc with merge):", error);
-         try {
-            await setDoc(participantRef, {
-                name: userName || "Participant", 
-                phone: userPhone || "",
-                email: userMail || "",
-                district: userDistrict || "",
-                organization: userOrganization || "",
-                hasSubmitted: true, 
-                quizState: {
-                    currentQuizQuestions: preparedQuestions,
-                    currentQuestionIndex: 0,
-                    userAnswers: {},
-                    score: 0
-                },
-                quizCompleted: false,
-                submittedAt: new Date().toISOString() // Add submittedAt if creating new
-            }, { merge: true });
-         } catch (setDocError) {
-            console.error("Error saving initial quiz state with setDoc:", setDocError);
-         }
+      console.error("Error saving/updating initial quiz state:", error);
     }
-  }, [userId, userName, userPhone, userMail, userDistrict, userOrganization]); // Added form fields to deps for setDoc fallback
+  }, [userId, userName, userPhone, userMail, userDistrict, userOrganization]); // Include all dependencies that might be used in setDoc
 
   const handleInfoSubmit = async (e) => {
     e.preventDefault();
@@ -189,13 +169,9 @@ const Quiz = ({ onQuizComplete }) => {
         method: "POST",
         body: formData,
         mode: "no-cors" 
-      }).then(() => {
-        console.log("Attempted data submission to Google Form.");
-      }).catch(gfError => {
-        console.error("Error submitting to Google Form (network or other):", gfError);
-      });
+      }).then(() => console.log("Attempted data submission to Google Form."))
+        .catch(gfError => console.error("Error submitting to Google Form:", gfError));
       
-      setHasSubmittedDetails(true);
       proceedToQuizQuestions(userId);
 
     } catch (err) {
@@ -220,17 +196,16 @@ const Quiz = ({ onQuizComplete }) => {
     setUserAnswers(prev => {
       const newAnswers = { ...prev, [questionId]: selectedOption };
       updateFirestoreQuizState({
-        currentQuizQuestions, // This should be the actual questions array being used
+        currentQuizQuestions,
         currentQuestionIndex,
         userAnswers: newAnswers,
-        score // Current score, gets recalculated at the end
+        score 
       });
       return newAnswers;
     });
   };
 
   const handleNextQuestion = () => {
-    let finalScore = score; // Keep current score for quizState update
     if (currentQuestionIndex < currentQuizQuestions.length - 1) {
       const newIndex = currentQuestionIndex + 1;
       setCurrentQuestionIndex(newIndex);
@@ -248,20 +223,18 @@ const Quiz = ({ onQuizComplete }) => {
         }
       });
       setScore(calculatedScore);
-      finalScore = calculatedScore; // Update finalScore for Firestore
       setQuizPhase('results');
-      setQuizCompletedInDb(true);
 
       if (userId) {
         const participantRef = doc(db, 'participants', userId);
         updateDoc(participantRef, {
           quizCompleted: true,
-          finalScore: finalScore, 
+          finalScore: calculatedScore, 
           quizState: { 
             currentQuizQuestions,
             currentQuestionIndex, 
             userAnswers,
-            score: finalScore
+            score: calculatedScore
           }
         }).catch((err) => {
           console.error("Error marking quiz as completed or saving final score:", err);
@@ -271,16 +244,17 @@ const Quiz = ({ onQuizComplete }) => {
   };
   
   const resetAndStartOver = () => {
+    // Resetting form fields, but user will re-auth and check status
     setUserName(''); 
     setUserPhone('');
     setUserMail('');
     setUserDistrict('');
     setUserOrganization('');
     setFormError('');
-    setQuizPhase('loadingAuth'); // Re-trigger auth check
+    setQuizPhase('loadingAuth'); // Re-trigger auth check to determine next phase properly
   };
 
-  // UI Rendering based on quizPhase
+  // UI Rendering
   if (quizPhase === 'loadingAuth') {
     return <div className="text-center p-10 text-white">Loading Quiz Session...</div>;
   }
@@ -294,10 +268,8 @@ const Quiz = ({ onQuizComplete }) => {
         <h2 className="text-3xl font-bold text-tribe-red-pink mb-6">Already Participated!</h2>
         <p className="text-gray-300 mb-8">Thank you, {userName || 'Participant'}! You’ve already completed the quiz.</p>
         {onQuizComplete && (
-          <button
-            onClick={onQuizComplete}
-            className="bg-gray-600 hover:bg-gray-700 text-white font-bold py-3 px-8 rounded-lg text-lg"
-          >
+          <button onClick={onQuizComplete}
+            className="bg-gray-600 hover:bg-gray-700 text-white font-bold py-3 px-8 rounded-lg text-lg">
             Close Quiz
           </button>
         )}
@@ -305,12 +277,17 @@ const Quiz = ({ onQuizComplete }) => {
     );
   }
   
-  // This specific 'initial' phase might not be reached often if auth resolves quickly
   if (quizPhase === 'initial') { 
-     return (
+     return ( // This screen might be briefly visible or skipped if auth is fast
        <div className="text-center p-8 bg-brand-black rounded-lg max-w-md mx-auto mt-10 border border-gray-700 shadow-xl">
          <h2 className="text-3xl font-bold text-tribe-red-pink mb-6">Web3 Quiz Challenge!</h2>
-         <p className="text-gray-300 mb-8">Initializing session...</p>
+         <p className="text-gray-300 mb-8">Test your knowledge with 20 random questions. Please provide your details to start.</p> {/* MODIFIED */}
+         <button
+           onClick={() => setQuizPhase('collectInfo')} // This button might not be used if useEffect auto-navigates
+           className="bg-tribe-mustard hover:bg-opacity-80 text-brand-black font-bold py-3 px-10 rounded-lg text-xl transition-transform duration-300 transform hover:scale-105"
+         >
+           Get Started
+         </button>
        </div>
      );
   }
@@ -320,6 +297,7 @@ const Quiz = ({ onQuizComplete }) => {
       <div className="text-center p-6 md:p-8 bg-gray-900 rounded-lg max-w-lg mx-auto mt-10 border border-gray-700 shadow-2xl">
         <h2 className="text-2xl font-bold text-tribe-red-pink mb-6">Your Details</h2>
         <form onSubmit={handleInfoSubmit} className="space-y-4 text-left">
+          {/* Form fields remain the same */}
           <div>
             <label htmlFor="userName" className="block text-sm font-medium text-gray-300 mb-1">Name <span className="text-red-500">*</span></label>
             <input type="text" id="userName" value={userName} onChange={(e) => setUserName(e.target.value)} required disabled={isSubmittingInfo}
@@ -360,7 +338,7 @@ const Quiz = ({ onQuizComplete }) => {
       <div className="text-center p-8 bg-gray-900 rounded-lg max-w-md mx-auto mt-10 border border-gray-700 shadow-2xl">
         <h2 className="text-3xl font-bold text-tribe-red-pink mb-6">Quiz Finished!</h2>
         <p className="text-gray-300 mb-2">Thank you, {userName || 'Participant'}!</p>
-        <p className="text-4xl text-tribe-mustard mb-8">Your Score: {score} / {currentQuizQuestions.length}</p>
+        <p className="text-4xl text-tribe-mustard mb-8">Your Score: {score} / {currentQuizQuestions.length}</p> {/* This will now show score / 20 */}
         <button onClick={resetAndStartOver}
           className="bg-tribe-mustard hover:bg-opacity-80 text-brand-black font-bold py-3 px-10 rounded-lg text-xl mr-4 transition-transform duration-300 transform hover:scale-105">
           Play Again
@@ -383,7 +361,7 @@ const Quiz = ({ onQuizComplete }) => {
     return (
       <div className="p-6 md:p-10 max-w-3xl mx-auto bg-gray-900 rounded-xl shadow-2xl text-white mt-10 border border-gray-700">
         <div className="mb-6">
-          <p className="text-sm text-tribe-mustard font-semibold">Question {currentQuestionIndex + 1} of {currentQuizQuestions.length}</p>
+          <p className="text-sm text-tribe-mustard font-semibold">Question {currentQuestionIndex + 1} of {currentQuizQuestions.length}</p> {/* This will now show X of 20 */}
           <h3 className="text-xl sm:text-2xl font-semibold mt-1">{question.text}</h3>
         </div>
         <div className="space-y-3 mb-8">
